@@ -1,6 +1,6 @@
-FROM althack/ros2:foxy-cuda-gazebo-nvidia
+FROM althack/ros2:foxy-gazebo-nvidia
 
-ENV ROS_DISTRO foxy
+ENV ROS_DISTRO ${ROS_DISTRO}
 
 # install utils
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive  && apt-get install -y  --no-install-recommends\
@@ -24,7 +24,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive  && apt-get install -y  --n
     python3-setuptools \
     python3-pip \
     python3-venv \
-    ros-foxy-rosbridge-suite \    
+    ros-${ROS_DISTRO}-rosbridge-suite \    
     && rm -rf /var/lib/apt/lists/*
 
 RUN sudo apt-get update && apt-get install -y \
@@ -36,31 +36,38 @@ RUN sudo apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/* 
 
 RUN apt-get update \
-   && apt-get -y install --no-install-recommends ros-foxy-gazebo-*\
-   ros-foxy-cartographer \
-   ros-foxy-cartographer-ros \
-   ros-foxy-navigation2 \
-   ros-foxy-nav2-bringup \
-   ros-foxy-dynamixel-sdk \
-   ros-foxy-turtlebot3-msgs \
-   ros-foxy-turtlebot3 \
+   && apt-get -y install --no-install-recommends ros-${ROS_DISTRO}-gazebo-*\
+   ros-${ROS_DISTRO}-cartographer \
+   ros-${ROS_DISTRO}-cartographer-ros \
+   ros-${ROS_DISTRO}-navigation2 \
+   ros-${ROS_DISTRO}-nav2-bringup \
+   ros-${ROS_DISTRO}-dynamixel-sdk \
+   ros-${ROS_DISTRO}-turtlebot3-msgs \
+   ros-${ROS_DISTRO}-turtlebot3 \
    #
    # Clean up
    && apt-get autoremove -y \
    && apt-get clean -y \
    && rm -rf /var/lib/apt/lists/*
 
-RUN echo 'export ROS_DOMAIN_ID=30 #TURTLEBOT3' >> ~/.bashrc
+RUN  pip install mcap-ros2-support citros
 
-RUN  pip install mcap-ros2-support
+RUN echo 'export ROS_DOMAIN_ID=0' >> ~/.bashrc
 
 WORKDIR /workspaces/turtlebot3
-COPY . .
-RUN . /opt/ros/foxy/setup.sh
-RUN rm -rf build install log
-RUN colcon build --symlink-install
 
-RUN pip install citros
+COPY src/ src/
+COPY ros2_entrypoint.sh ros2_entrypoint.sh
+
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh
+RUN colcon build --symlink-install 
+
+ENV TURTLEBOT3_MODEL=waffle
+ 
+RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc && \
+    echo "source /workspaces/turtlebot3/install/local_setup.bash" >> ~/.bashrc  
+
+RUN apt-get update && apt-get -y dist-upgrade --no-install-recommends   
 
 RUN chmod +x ros2_entrypoint.sh
 ENTRYPOINT ["/workspaces/turtlebot3/ros2_entrypoint.sh"]

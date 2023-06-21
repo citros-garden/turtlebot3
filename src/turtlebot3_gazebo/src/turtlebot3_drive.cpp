@@ -80,6 +80,9 @@ void Turtlebot3Drive::odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg
   m.getRPY(roll, pitch, yaw);
 
   robot_pose_ = yaw;
+  auto& clk = *this->get_clock();
+  RCLCPP_INFO_THROTTLE(get_logger(), clk, 1000,"Roll, Pitch, Yaw = [%.3f, %.3f, %.3f] [deg]",
+                                              roll*RAD2DEG, pitch*RAD2DEG, yaw*RAD2DEG);
 }
 
 void Turtlebot3Drive::scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
